@@ -56,10 +56,11 @@ def play_game(environment, species_features, max_turns=8, save=False):
 
             # Check legality
             quadrant_mask = agent.quadrant_mask[0]  # just their own mask
-            if not agent.is_legal_move(row, col, ownership_grid, quadrant_mask):
-                penalty = 1000.0
-                agent.rewards[-1] -= penalty
-                agent.quadrant_penalty -= penalty
+            if (agent.training_stage > 0):
+                if not agent.is_legal_move(row, col, ownership_grid, quadrant_mask):
+                    penalty = 1000.0
+                    agent.rewards[-1] -= penalty
+                    agent.quadrant_penalty -= penalty
             actions.append(action)
         game_actions.append(actions)
         environment.step(actions)

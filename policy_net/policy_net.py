@@ -16,7 +16,7 @@ class PolicyNet(nn.Module):
         self.location_head = nn.Conv2d(32, 1, 1)
 
         self.avgpool = nn.AvgPool2d(kernel_size=(h // 4, w // 4))
-        self.env_proj = nn.Linear(32, 64)
+        self.env_proj = nn.Linear(128, 64)
         self.species_proj = nn.Linear(species_feature_dim, 64)
 
         self.classifier = nn.Linear(64, 1)
@@ -25,7 +25,7 @@ class PolicyNet(nn.Module):
         x1 = F.relu(self.conv1(x))
         x2 = self.pool1(x1)
         x3 = F.relu(self.conv2(x2))
-        x4 = self.pool2(x3)
+        x4 = x3 #self.pool2(x3)
         x4 = torch.clamp(x4, 0, 6)
 
         env_feat = self.avgpool(x4).view(x.size(0), -1)             # [B, 32]
