@@ -38,6 +38,7 @@ class Environment:
 
     def step(self, actions):
         print(actions)
+        pre_step_grid = self.grid.clone()
         """Actions is a list of (agent_id, species_name, row, col)"""
         for agent_id, plant_idx, row, col in actions:
             self.grid[0, 6 + plant_idx, row, col] = 1
@@ -67,6 +68,7 @@ class Environment:
 
         # Restore static channels
         self.current_turn += 1
+        return pre_step_grid.clone(), self.grid.clone()  # return before and after state
 
     def update_ownership(self):
         """Optional: Transfer ownership as plants expand."""

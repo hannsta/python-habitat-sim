@@ -3,6 +3,7 @@ import random
 from nca.constsants import PLANT_RULES, H, W, CHANNELS
 from nca.nca_model import get_species_features_tensor
 from nca.suitability import compute_suitability
+from collections import deque
 class LearningAgent:
     def __init__(self, agent_id, policy_net, available_species=None, start_quadrant="top_left", steps_per_turn=10, agent_mask=None):
         self.agent_id = agent_id
@@ -17,7 +18,6 @@ class LearningAgent:
         self.step_counter = 0
         self.player_number = 0
         self.species_list = []
-        self.species_used = []
         self.row_used = []
         self.column_used = []
         self.quadrant_penalty = 0
@@ -27,6 +27,7 @@ class LearningAgent:
         self.suitability_reward = 0
         self.diversity_reward = 0
         self.growth_reward = 0
+        self.growth_buffer = deque(maxlen=20)
         
         self.round_quadrant_penalty = 0
 
@@ -44,12 +45,13 @@ class LearningAgent:
             self.available_species = random.sample(list(PLANT_RULES.keys()), k=4)
     def check_curriculum(self):
 
-        if (self.training_stage == 0):
-            if (self.growth_reward > 2000):
-                self.growth_skill += 1
-                if (self.growth_skill > 100):
-                    print(f"Agent {self.agent_id} has leanred growth!!")
-                    self.training_stage = 1
+        if self.training_stage == 0:
+            if len(self.growth_buffer) == 20:
+                successes = sum(1 for g in self.growth_buffer if g > 50)
+                success_rate = successes / 20.0
+                if success_rate >= 0.9:
+                    print(f"Agent {self.agent_id} has learned growth!!")
+                    #self.training_stage = 1
 
 
         if (self.training_stage == 1):
@@ -88,7 +90,8 @@ class LearningAgent:
 
 
     def log_and_reset_loss(self):
-        print(f"Agent {self.agent_id} Stage {self.training_stage} Growth: {int(self.growth_reward)} Quad Pen: {int(self.quadrant_penalty)} Species Pen: {int(self.species_penalty)}  Suit Rew: {int(self.suitability_reward)} Diversity  Rew {int(self.diversity_reward)}")
+        self.growth_buffer.append(self.growth_reward)
+        #print(f"Agent {self.agent_id} Stage {self.training_stage} Growth: {int(self.growth_reward)} Quad Pen: {int(self.quadrant_penalty)} Species Pen: {int(self.species_penalty)}  Suit Rew: {int(self.suitability_reward)} Diversity  Rew {int(self.diversity_reward)}")
         self.quadrant_penalty = 0
         self.species_penalty = 0
         self.redunancy_penalty = 0
@@ -167,7 +170,7 @@ class LearningAgent:
             round_species_penalty = -1000
         else:
             if species_id not in self.species_used: 
-                self.species_used.append(species_id)
+                # self.species_used.append(species_id)
                 diversity_score += 1
 
         species_name = self.species_list[species_id]
@@ -223,7 +226,7 @@ class LearningAgent:
         self.saved_log_probs.append(log_prob)
         
         round_rewards = 0
-        if (self.training_stage == 1):
+        if (self.training_stage < 2):
             round_rewards = round_species_penalty
         if (self.training_stage == 2):
             round_rewards = round_species_penalty + round_suitability_reward + round_redundancy_penalty
@@ -253,4 +256,5 @@ class LearningAgent:
         per_action_reward = total_score / num_actions
         for i in range(num_actions):
             self.rewards[i] += per_action_reward
-        self.growth_reward += total_score  # For logging/debugging
+        self.growth_reward += total_score  # For logging/debuggin
+    

@@ -2,37 +2,32 @@ import torch
 import numpy as np
 from nca.nca_model import log_channel_sums
 
-def finish_episode(agent, optimizer, grid, gamma=.10):
+def finish_episode(agent, optimizer, grid, gamma=0.10):
     returns = []
     R = 0.0
+    print(f"Agent {agent.agent_id} Reward ++++ {agent.rewards}")
     for r in reversed(agent.rewards):
         R = r + gamma * R
         returns.insert(0, R)
 
     returns = torch.tensor(returns, device='cuda')
 
-    # Normalize
-    if returns.std() > 1e-6:
-        returns = (returns - returns.mean()) / (returns.std() + 1e-8)
-    else:
-        returns = returns - returns.mean()  #
-        
-    optimizer.zero_grad()
-    total_loss = torch.tensor(0.0, device='cuda')
-
-    losses=[]
-
-    for log_prob, R in zip(agent.saved_log_probs, returns):
-        losses.append(-log_prob * R)
-
     
-    total_loss = torch.stack(losses).sum()
-    total_loss.backward()
+    returns = torch.tensor(returns, device='cuda')
+    advantage = returns
+    optimizer.zero_grad()
+    losses = [-log_prob * adv for log_prob, adv in zip(agent.saved_log_probs, advantage)]
+    loss = torch.stack(losses).sum()
+
+    print(f"Agent {agent.agent_id} Loss ==== {loss.item()}")
+    loss.backward()
     torch.nn.utils.clip_grad_norm_(agent.policy_net.parameters(), max_norm=1.0)
     optimizer.step()
+
     # Clean up
     agent.rewards.clear()
     agent.saved_log_probs.clear()
+
 
 
 def play_game(environment, species_features, max_turns=8, save=False):
@@ -63,8 +58,24 @@ def play_game(environment, species_features, max_turns=8, save=False):
                     agent.quadrant_penalty -= penalty
             actions.append(action)
         game_actions.append(actions)
-        environment.step(actions)
-
+        pre_grid, post_grid = environment.step(actions)
+        compute_growth_rewards_from_grid_diff(pre_grid, post_grid, actions, environment.agents)
     scores = environment.get_scores()
     #log_channel_sums(environment.grid)
     return scores, game_actions
+
+
+def compute_growth_rewards_from_grid_diff(pre_grid, post_grid, actions, agents, base_channel=6, scale=1):
+    for agent_id, species_idx, _, _ in actions:
+        agent = next(a for a in agents if a.agent_id == agent_id)
+        chan = base_channel + species_idx
+
+        delta = post_grid[0, chan] - pre_grid[0, chan]
+        growth = torch.clamp(delta, min=0).sum().item()  # Only reward positive growth
+        if species_idx not in agent.species_used:
+            agent.species_used.append(species_idx)
+
+            agent.rewards[-1] += (growth * scale)
+            agent.growth_reward += growth * scale
+
+    
