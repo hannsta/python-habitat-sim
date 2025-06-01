@@ -20,20 +20,19 @@ class NCA(nn.Module):
 
     def forward(self, x, species_features):
         B, C, H, W = x.shape
-        plant_channels = CHANNELS["plants"]
+        all_plants = CHANNELS["plants"]
+        valid_plants = [(plant, idx) for plant, idx in all_plants if idx < C]
         updated = x.clone()
-        proposals = torch.zeros((B, len(plant_channels), H, W), device=x.device)
+        proposals = torch.zeros((B, len(valid_plants), H, W), device=x.device)
 
-        plant_list = [name for name, _ in plant_channels]
+        plant_list = [name for name, _ in valid_plants]
 
-        for i, (plant, idx) in enumerate(plant_channels):
+        for i, (plant, idx) in enumerate(valid_plants):
             plant_map = x[:, idx:idx+1]
             features = species_features[i].view(1, -1, 1, 1).expand(B, -1, H, W)
             input_tensor = torch.cat([x, features], dim=1)
 
-
             kernel = torch.ones(1, 1, 3, 3, device=x.device) / 9.0
-            
             delta = F.relu(self.model(input_tensor).squeeze(1))
             delta = torch.clamp(delta, 0, 1.0)
 
@@ -55,7 +54,6 @@ class NCA(nn.Module):
 
             growth_proposal = torch.clamp(spread_update, 0, 0.1) + maturation_update
             proposals[:, i] = torch.clamp(presence + growth_proposal, 0, 1)
-
 
         GROUP_COUNT = 3
         GROUP_OFFSET = -3
@@ -80,7 +78,7 @@ class NCA(nn.Module):
 
             for local_idx_in_group, global_idx in enumerate(group_indices):
                 plant_name = plant_list[global_idx]
-                idx = next(idx for name, idx in plant_channels if name == plant_name)
+                idx = next(idx for name, idx in valid_plants if name == plant_name)
                 winner_mask = (winner_indices == local_idx_in_group).float()
 
                 existing = x[:, idx]
@@ -90,12 +88,13 @@ class NCA(nn.Module):
                     existing * persistence
                 )
 
-        plant_indices = [idx for _, idx in plant_channels]
-        for i in range(x.shape[1]):
+        plant_indices = [idx for _, idx in valid_plants]
+        for i in range(C):
             if i not in plant_indices:
                 updated[:, i] += x[:, i] * 0.1
 
         return torch.clamp(updated, 0, 1)
+
 
 def compute_group_overlap_penalty(grid, species_features):
     """

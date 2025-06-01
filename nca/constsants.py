@@ -10,6 +10,17 @@ SOIL_TYPES = ["loam", "clay", "sand", "peat"]
 
 BASE_PLANT_RULES = {
     # === Grasses ===
+
+    "bad": {
+        "group": [0, 0, 0],              # grass
+        "soil_types": [0, 0, 0, 0],      # loam, clay
+        "elevation": [0, 0, 0],          # low, med
+        "shade": [0, 0, 0],              # low, med
+        "moisture_tolerance": 0,
+        "spread_rate": 0,
+        "root_competition": 0,
+        "persistence": 0
+    },
     "grass_0": {  # Wheatgrass – generalist stabilizer
         "group": [1, 0, 0],              # grass
         "soil_types": [1, 1, 0, 0],      # loam, clay
@@ -40,7 +51,16 @@ BASE_PLANT_RULES = {
         "root_competition": 0.3,
         "persistence": 0.1
     },
-
+    "grass_3": {  # Creeping Fescue – shade-tolerant forest understory
+        "group": [1, 0, 0],              # grass
+        "soil_types": [1, 0, 0, 0],      # loam
+        "elevation": [1, 1, 0],          # low, med
+        "shade": [0, 1, 1],              # med, high
+        "moisture_tolerance": 0.6,
+        "spread_rate": 0.4,
+        "root_competition": 0.3,
+        "persistence": 0.5
+    },
     # === Shrubs ===
     "shrub_0": {  # Coastal Sage – dry ridge colonizer
         "group": [0, 1, 0],              #shrub      
@@ -72,7 +92,36 @@ BASE_PLANT_RULES = {
         "root_competition": 0.6,
         "persistence": 0.6
     },
-
+    "shrub_3": {  # Rockrose – hardy dryland stabilizer
+        "group": [0, 1, 0],              # shrub
+        "soil_types": [0, 0, 1, 0],      # sand
+        "elevation": [0, 0, 1],          # high only
+        "shade": [1, 0, 0],              # low only
+        "moisture_tolerance": 0.2,
+        "spread_rate": 0.6,
+        "root_competition": 0.5,
+        "persistence": 0.3
+    },
+    "shrub_4": {  # Buttonbush – thrives at water margins
+        "group": [0, 1, 0],              # shrub
+        "soil_types": [0, 1, 0, 1],      # clay, peat
+        "elevation": [1, 0, 0],          # low only
+        "shade": [1, 1, 0],              # low, med
+        "moisture_tolerance": 0.95,
+        "spread_rate": 0.3,
+        "root_competition": 0.6,
+        "persistence": 0.9
+    },
+    "shrub_5": {  # Sunny Buckbrush – generalist sun-loving shrub
+        "group": [0, 1, 0],               # shrub
+        "soil_types": [0, 1, 1, 0],       # clay, sand
+        "elevation": [1, 1, 1],           # all elevations
+        "shade": [1, 0, 0],               # low only
+        "moisture_tolerance": 0.4,
+        "spread_rate": 0.5,
+        "root_competition": 0.5,
+        "persistence": 0.6
+    },
     # === Trees ===
     "tree_0": {  # Douglas Fir – upland dominant
         "group": [0, 0, 1],              # tree
@@ -104,6 +153,16 @@ BASE_PLANT_RULES = {
         "root_competition": 0.9,
         "persistence": 0.95
     },
+    "tree_3": {  # Red Maple – adaptable wet/dry transitional tree
+        "group": [0, 0, 1],              # tree
+        "soil_types": [1, 1, 0, 0],      # loam, clay
+        "elevation": [1, 1, 0],          # low, med
+        "shade": [1, 1, 0],              # low, med
+        "moisture_tolerance": 0.7,
+        "spread_rate": 0.4,
+        "root_competition": 0.7,
+        "persistence": 0.8
+    },
     "tree_4": {  # Placeholder
         "group": [0, 0, 1],              # tree
         "soil_types": [0, 1, 1, 0],      # peat
@@ -113,7 +172,18 @@ BASE_PLANT_RULES = {
         "spread_rate": 0.5,
         "root_competition": 0.8,
         "persistence": .8
+    },
+    "tree_5": {  # Western Hemlock – shade-dominant late successional tree
+        "group": [0, 0, 1],              # tree
+        "soil_types": [1, 0, 0, 1],      # loam, peat
+        "elevation": [1, 1, 1],          # all elevations
+        "shade": [0, 1, 1],              # med, high
+        "moisture_tolerance": 0.8,
+        "spread_rate": 0.2,
+        "root_competition": 0.9,
+        "persistence": 1.0
     }
+
 }
 PLANT_RULES = BASE_PLANT_RULES
 

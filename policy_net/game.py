@@ -74,8 +74,35 @@ def compute_growth_rewards_from_grid_diff(pre_grid, post_grid, actions, agents, 
         growth = torch.clamp(delta, min=0).sum().item()  # Only reward positive growth
         if species_idx not in agent.species_used:
             agent.species_used.append(species_idx)
-
+            if (growth < 2):
+                growth = -10
             agent.rewards[-1] += (growth * scale)
             agent.growth_reward += growth * scale
 
     
+import numpy as np
+
+def log_channel_sums(grid: torch.Tensor):
+    assert grid.ndim == 4, "Expected shape [1, channels, height, width]"
+    channels = grid.shape[1]
+    for c in range(channels):
+        channel_sum = grid[0, c].sum().item()
+        print(f"Channel {c} sum: {channel_sum}")
+
+
+def save_checkpoint(model, optimizer, epoch, path="policy_net_checkpoint.pth"):
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict()
+    }
+    torch.save(checkpoint, path)
+    print(f"Checkpoint saved at {path}")
+
+def load_checkpoint(model, optimizer, path="policy_net_checkpoint.pth"):
+    checkpoint = torch.load(path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    print(f"Checkpoint loaded from {path}, resuming at epoch {epoch}")
+    return epoch

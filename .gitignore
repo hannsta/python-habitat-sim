@@ -1,1 +1,84 @@
 .venv
+# =======================
+# Python Cache and Builds
+# =======================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+# C extensions
+*.so
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# =======================
+# Unit Test / Coverage
+# =======================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Type Checkers
+.mypy_cache/
+.dmypy.json
+typings/
+.pyre/
+
+# Security Scanning
+.bandit/
+
+# =======================
+# Logs and Runtime Files
+# =======================
+*.log
+*.out
+*.pid
+
+# =======================
+# Environment Config
+# =======================
+.env
+.env.*
+.envrc
+*.env
+
+# =======================
+# IDEs and Editors
+# =======================
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# =======================
+# OS-specific Junk
+# =======================
+.DS_Store
+Thumbs.db
+desktop.ini

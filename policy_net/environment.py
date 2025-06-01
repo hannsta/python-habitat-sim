@@ -28,47 +28,45 @@ class Environment:
                 agent.quadrant_mask[0, :H//2, :W//2] = 1.0
             elif agent.start_quadrant == "bottom_right":
                 agent.quadrant_mask[0, H//2:, W//2:] = 1.0
-            elif agent.start_quadrant == "top_right":
-                agent.quadrant_mask[0, :H//2, W//2:] = 1.0
-            elif agent.start_quadrant == "bottom_left":
-                agent.quadrant_mask[0, H//2:, :W//2] = 1.0
 
     def get_frames(self):
         return self.frames
-
+    
     def step(self, actions):
-        print(actions)
         pre_step_grid = self.grid.clone()
-        """Actions is a list of (agent_id, species_name, row, col)"""
+
+        # Apply all actions in-place
         for agent_id, plant_idx, row, col in actions:
             self.grid[0, 6 + plant_idx, row, col] = 1
             self.ownership_grid[0, row, col] = agent_id
-        # Run growth
-        for i in range(self.steps_per_turn):
-            with torch.no_grad():
-                # print("============================")
-                # log_channel_sums(self.grid)
-                # print("----------------------")
-                self.grid = self.model(self.grid, self.species_features) 
-                #update_shade(self.grid)
 
-  
-                self.grid[:, CHANNELS["elevation"]] = self.elevation_static
-                self.grid[:, CHANNELS["shade"]] = self.shade_static
-                
-                for idx, value in self.soil_static.items():
-                    self.grid[:, idx] = value
-                
+        # Cache static layers to local variables
+        elevation = self.elevation_static
+        shade = self.shade_static
+        soil = self.soil_static
+        steps = self.steps_per_turn
 
-                # log_channel_sums(self.grid)
-                # print("============================")
+        with torch.no_grad():
+            for _ in range(steps):
+                # Grow vegetation
+                self.grid = self.model(self.grid, self.species_features)
+
+                # Reset static layers
+                self.grid[:, CHANNELS["elevation"]] = elevation
+                self.grid[:, CHANNELS["shade"]] = shade
+                for idx, val in soil.items():
+                    self.grid[:, idx] = val
+
+                # Store for animation and scoring
                 self.frames.append(self.ownership_grid[0].detach().cpu().clone())
-                self.grid_frames.append(self.grid[0].detach().cpu().clone()) 
+                self.grid_frames.append(self.grid[0].detach().cpu().clone())
+
+                # Update ownership labels based on plant spread
                 self.update_ownership()
 
-        # Restore static channels
         self.current_turn += 1
-        return pre_step_grid.clone(), self.grid.clone()  # return before and after state
+        return pre_step_grid.clone(), self.grid.clone()
+
 
     def update_ownership(self):
         """Optional: Transfer ownership as plants expand."""

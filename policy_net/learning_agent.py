@@ -5,16 +5,16 @@ from nca.nca_model import get_species_features_tensor
 from nca.suitability import compute_suitability
 from collections import deque
 class LearningAgent:
-    def __init__(self, agent_id, policy_net, available_species=None, start_quadrant="top_left", steps_per_turn=10, agent_mask=None):
+    def __init__(self, agent_id, policy_net, available_species=None, start_quadrant="top_left", steps_per_turn=10):
         self.agent_id = agent_id
         self.policy_net = policy_net
         self.available_species = available_species
-        self.start_quadrant = start_quadrant  # <--- NEW
+        self.base_species = available_species
+        self.start_quadrant = start_quadrant
         self.quadrant_mask =  torch.zeros((1, H, W), device='cuda')
         self.saved_log_probs = []
         self.rewards = []
         self.save_interval = steps_per_turn
-        self.agent_mask = agent_mask
         self.step_counter = 0
         self.player_number = 0
         self.species_list = []
@@ -116,22 +116,24 @@ class LearningAgent:
         grid = grid.detach()
 
         if self.player_number == 1:
-            agent_species_ids = [12,13,14,15,16]
+            agent_species_ids = [6,7,8,9,10]
         elif self.player_number == 2:
-            agent_species_ids = [7,8,9,10,11]
+            agent_species_ids = [11, 12,13,14,15]
 
         if (self.training_stage == 0):
-            masked_grid = self.mask_opponent_species(grid, agent_species_ids)
+            masked_grid = grid #self.mask_opponent_species(grid, agent_species_ids)
         else:
             masked_grid = grid
 
         ownership_flags = torch.tensor(
-            [1.0 if ((self.player_number == 1 and i >= 5) or (self.player_number == 2 and i < 5)) else 0.0
+            [1.0 if ((self.player_number == 1 and i < 5) or (self.player_number == 2 and i >=  5)) else 0.0
             for i in range(10)],
             device=species_features.device
         ).unsqueeze(1)  # shape: [num_species, 1]
-
         species_features = torch.cat([species_features, ownership_flags], dim=1)
+        print("============================")
+        print(species_features.shape)
+        print(masked_grid.shape)
         species_logits, location_logits = self.policy_net(masked_grid, species_features)
 
         round_rewards = 0
@@ -180,12 +182,16 @@ class LearningAgent:
 
 
         B, HW = location_logits.shape
-        output_H = grid.shape[2] // 2  # Since we removed the second pooling layer
-        output_W = grid.shape[3] // 2
+        # output_H = grid.shape[2] // 2  # Since we removed the second pooling layer
+        # output_W = grid.shape[3] // 2
+        # flat_idx = location_idx.item()
+        # row = (flat_idx // output_W) * 2 + 1  # +1 centers it in the 2×2 patch
+        # col = (flat_idx % output_W) * 2 + 1
+        output_H = grid.shape[2]
+        output_W = grid.shape[3]
         flat_idx = location_idx.item()
-        row = (flat_idx // output_W) * 2 + 1  # +1 centers it in the 2×2 patch
-        col = (flat_idx % output_W) * 2 + 1
-
+        row = flat_idx // output_W
+        col = flat_idx % output_W
         if row not in self.row_used: 
             self.row_used.append(row)
             diversity_score += 1
@@ -202,7 +208,7 @@ class LearningAgent:
                         max(col - 1, 0):min(col + 2, W)]
 
         # Compute average density
-        local_density = local_patch.mean().item()
+        local_density = local_patch.mean()
 
         # Penalize if species is already present in that area
         round_redundancy_penalty = 0
@@ -237,9 +243,8 @@ class LearningAgent:
 
         self.rewards.append(round_rewards)
         
-        #species_name = self.available_species[species_idx]
         action = (self.agent_id, species_id, row, col)
-
+        print(action)
         return action
 
     
