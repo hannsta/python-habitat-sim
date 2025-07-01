@@ -46,7 +46,7 @@ class NCA(nn.Module):
             is_existing = (presence > 0.1).float()
             is_new = 1.0 - is_existing
 
-            spread_mask = (blurred > 0.05).float() * is_new * spread_rate
+            spread_mask = (blurred > 0.05).float() * is_new * spread_rate * spread_rate
             maturation_mask = is_existing
 
             spread_update = delta * spread_mask * habitat_suitability
@@ -147,6 +147,7 @@ def compute_loss(grid,species_features, epoch, coverage_deltas):
 
     total_penalty = 0
     total_coverage_loss = 0
+
     competition_penalty = compute_group_overlap_penalty(grid, species_features)
     coverage_reward = 0
     average_coverage_reward = 0
@@ -161,8 +162,9 @@ def compute_loss(grid,species_features, epoch, coverage_deltas):
         # Encourage coverage (each plant should reach some % of map)
         coverage = plant_map.mean()
         coverage_target = 0.1
+        spread_rate = species_features[idx - 6, 1]
         coverage_loss = (coverage_target - coverage).clamp(min=0).pow(2)
-        total_coverage_loss += coverage_loss
+        total_coverage_loss += coverage_loss * ( 1 / spread_rate)
         nonzero_mask = (plant_map > 0)
         if nonzero_mask.any():
             avg_coverage = plant_map[nonzero_mask].mean()
